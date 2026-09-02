@@ -11,6 +11,7 @@
  * const appName = env.NEXT_PUBLIC_APP_NAME;
  */
 
+import { logger } from '@/utils/logger';
 import {
   validateEnv,
   validateEnvRequirements,
@@ -41,7 +42,7 @@ export function initEnv(): EnvConfig {
 
     // Log initialization in development
     if (validatedEnvConfig.NEXT_PUBLIC_DEBUG_MODE) {
-      console.log("[EnvConfig] Environment initialized:", {
+      logger.info("[EnvConfig] Environment initialized:", {
         NODE_ENV: validatedEnvConfig.NODE_ENV,
         NEXT_PUBLIC_APP_NAME: validatedEnvConfig.NEXT_PUBLIC_APP_NAME,
         NEXT_PUBLIC_APP_URL: validatedEnvConfig.NEXT_PUBLIC_APP_URL,
@@ -50,7 +51,7 @@ export function initEnv(): EnvConfig {
 
     return validatedEnvConfig;
   } catch (error) {
-    console.error("[EnvConfig] Environment validation failed:", error);
+    logger.error("[EnvConfig] Environment validation failed:", error);
     throw error;
   }
 }
@@ -92,11 +93,11 @@ export function isMaintenanceMode(): boolean {
 
 /**
  * Get RPC URL for a specific chain
- * @param chain - The chain identifier (ethereum, polygon, bsc)
+ * @param chain - The chain identifier (ethereum, polygon, bsc, local)
  * @returns RPC URL or undefined if not configured
  */
 export function getRpcUrl(
-  chain: "ethereum" | "polygon" | "bsc",
+  chain: "ethereum" | "polygon" | "bsc" | "local",
 ): string | undefined {
   const config = getEnvConfig();
 
@@ -107,9 +108,19 @@ export function getRpcUrl(
       return config.POLYGON_MAINNET_RPC_URL;
     case "bsc":
       return config.BSC_MAINNET_RPC_URL;
+    case "local":
+      return config.LOCAL_RPC_URL;
     default:
       return undefined;
   }
+}
+
+/**
+ * Get local Foundry/Anvil RPC URL
+ * @returns Local RPC URL or undefined if not configured
+ */
+export function getLocalRpcUrl(): string | undefined {
+  return getEnvConfig().LOCAL_RPC_URL;
 }
 
 /**
@@ -164,6 +175,6 @@ if (typeof window === "undefined") {
     initEnv();
   } catch (error) {
     // Log but don't throw during module load to allow Next.js to handle gracefully
-    console.warn("[EnvConfig] Early validation warning:", error);
+    logger.warn("[EnvConfig] Early validation warning:", error);
   }
 }

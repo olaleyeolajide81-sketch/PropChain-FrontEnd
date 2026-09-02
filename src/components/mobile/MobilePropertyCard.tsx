@@ -36,7 +36,7 @@ export const MobilePropertyCard = ({
   const [showViewer, setShowViewer] = useState(false);
   const isPositiveROI = property.roi >= 0;
 
-  const handleShare = async (e: React.MouseEvent) => {
+  const handleShare = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
 
     if (navigator.share) {
@@ -54,7 +54,7 @@ export const MobilePropertyCard = ({
     }
   };
 
-  const handleSave = (e: React.MouseEvent) => {
+  const handleSave = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     setIsSaved(!isSaved);
   };
@@ -100,26 +100,33 @@ export const MobilePropertyCard = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleSave}
+                aria-pressed={isSaved}
+                aria-label={isSaved ? `Remove ${property.name} from saved` : `Save ${property.name}`}
                 className="w-8 h-8 p-0 bg-black/50 hover:bg-black/70 text-white"
               >
                 <Heart
                   className={`w-4 h-4 ${isSaved ? "fill-red-500 text-red-500" : ""}`}
+                  aria-hidden="true"
                 />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleShare}
+                aria-label={`Share ${property.name}`}
                 className="w-8 h-8 p-0 bg-black/50 hover:bg-black/70 text-white"
               >
-                <Share2 className="w-4 h-4" />
+                <Share2 className="w-4 h-4" aria-hidden="true" />
               </Button>
             </div>
           </div>
 
           {/* Image Counter */}
           {property.images.length > 1 && (
-            <div className="absolute bottom-3 right-3 bg-black/50 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+            <div
+              data-testid="image-counter"
+              className="absolute bottom-3 right-3 bg-black/50 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1"
+            >
               <Eye className="w-3 h-3" />
               {property.images.length}
             </div>
@@ -160,11 +167,11 @@ export const MobilePropertyCard = ({
             <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
               <div className="flex items-center gap-1">
                 <Bed className="w-4 h-4" />
-                <span>{property.bedrooms}</span>
+                <span data-testid="bedrooms">{property.bedrooms}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Bath className="w-4 h-4" />
-                <span>{property.bathrooms}</span>
+                <span data-testid="bathrooms">{property.bathrooms}</span>
               </div>
               {property.sqft && (
                 <div className="flex items-center gap-1">
@@ -231,8 +238,8 @@ export const MobilePropertyCard = ({
           {/* Amenities Preview */}
           {property.amenities && property.amenities.length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {property.amenities.slice(0, 2).map((amenity, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
+              {property.amenities.slice(0, 2).map((amenity) => (
+                <Badge key={amenity} variant="outline" className="text-xs">
                   {amenity}
                 </Badge>
               ))}

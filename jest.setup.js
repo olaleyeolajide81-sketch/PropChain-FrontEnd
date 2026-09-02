@@ -1,0 +1,151 @@
+import '@testing-library/jest-dom'
+
+// Ensure TextEncoder/TextDecoder are available (jsdom may not provide them)
+// so that Next.js edge-runtime constructors and fetch-based tests work.
+const { TextEncoder: NodeTextEncoder } = globalThis
+if (typeof globalThis.TextEncoder === 'undefined' || typeof NodeTextEncoder?.encode !== 'function') {
+  globalThis.TextEncoder = require('util').TextEncoder
+}
+if (typeof globalThis.TextDecoder === 'undefined') {
+  globalThis.TextDecoder = require('util').TextDecoder
+}
+import 'jest-axe/extend-expect'
+import { configure } from '@testing-library/react'
+
+// Set test environment
+process.env.NODE_ENV = 'development'
+
+// Configure Testing Library
+configure({ testIdAttribute: 'data-testid' })
+
+// Mock Next.js router
+jest.mock('next/router', () => ({
+  useRouter() {
+    return {
+      route: '/',
+      pathname: '/',
+      query: '',
+      asPath: '',
+      push: jest.fn(),
+      pop: jest.fn(),
+      reload: jest.fn(),
+      back: jest.fn(),
+      prefetch: jest.fn().mockResolvedValue(undefined),
+      beforePopState: jest.fn(),
+      events: {
+        on: jest.fn(),
+        off: jest.fn(),
+        emit: jest.fn(),
+      },
+    }
+  },
+}))
+
+// Mock Next.js navigation
+jest.mock('next/navigation', () => ({
+  useRouter() {
+    return {
+      push: jest.fn(),
+      replace: jest.fn(),
+      refresh: jest.fn(),
+      back: jest.fn(),
+      forward: jest.fn(),
+      prefetch: jest.fn(),
+    }
+  },
+  useSearchParams() {
+    return new URLSearchParams()
+  },
+  usePathname() {
+    return '/'
+  },
+}))
+
+// Mock Web3/Ethereum providers
+const mockEthereum = {
+  request: jest.fn(),
+  on: jest.fn(),
+  removeListener: jest.fn(),
+  isConnected: jest.fn(() => false),
+  isMetaMask: true,
+}
+
+Object.defineProperty(window, 'ethereum', {
+  value: mockEthereum,
+  writable: true,
+})
+
+// Web3Wallet, Coinbase Wallet SDK, and MetaMask SDK mocks
+// are defined per-test in walletConnectors tests to allow dynamic behavior.
+// Mocks for other suites that need generic stubs:
+jest.mock('@coinbase/wallet-sdk', () => {
+  return jest.fn().mockImplementation(() => ({
+    makeWeb3Provider: jest.fn(),
+    disconnect: jest.fn(),
+  }))
+})
+jest.mock('@metamask/sdk', () => {
+  return jest.fn().mockImplementation(() => ({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    getProvider: jest.fn(),
+  }))
+})
+
+// Mock IntersectionObserver (no-op by default so lazy components stay unloaded)
+global.IntersectionObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}))
+
+// Mock ResizeObserver
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}))
+
+// Mock matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(), // deprecated
+    removeListener: jest.fn(), // deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+})
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+}
+global.localStorage = localStorageMock
+
+// Mock sessionStorage
+const sessionStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+}
+global.sessionStorage = sessionStorageMock
+
+// Polyfill crypto.randomUUID for jsdom (Node.js <19 / jsdom without randomUUID)
+if (typeof globalThis.crypto !== 'undefined' && !globalThis.crypto.randomUUID) {
+  globalThis.crypto.randomUUID = function randomUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+}

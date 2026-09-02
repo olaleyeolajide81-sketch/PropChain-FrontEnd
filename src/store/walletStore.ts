@@ -1,5 +1,14 @@
+/**
+ * Wallet Store
+ *
+ * NOTE: This store is a thin UI-state wrapper. The canonical source of truth
+ * for wallet connection is wagmi's connector state. This store only holds
+ * transient UI state (loading, error, switching) that wagmi doesn't track.
+ *
+ * Long-term: migrate components to use wagmi hooks directly and remove this store.
+ */
+
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { DEFAULT_CHAIN_ID } from '@/config/chains';
 import type { ChainId } from '@/config/chains';
 
@@ -34,9 +43,32 @@ export interface WalletActions {
 
 export type WalletStore = WalletState & WalletActions;
 
-export const useWalletStore = create<WalletStore>()(
-  persist(
-    (set, get) => ({
+export const useWalletStore = create<WalletStore>()((set) => ({
+  isConnected: false,
+  address: null,
+  walletType: null,
+  chainId: DEFAULT_CHAIN_ID,
+  isConnecting: false,
+  isSwitchingNetwork: false,
+  error: null,
+  balance: null,
+  isLoading: false,
+  lastUpdated: null,
+
+  setConnected: (address: string, walletType: WalletType, chainId: ChainId = DEFAULT_CHAIN_ID) => {
+    set({
+      isConnected: true,
+      address,
+      walletType,
+      chainId,
+      isConnecting: false,
+      error: null,
+      lastUpdated: Date.now(),
+    });
+  },
+
+  setDisconnected: () => {
+    set({
       isConnected: false,
       address: null,
       walletType: null,
@@ -47,85 +79,47 @@ export const useWalletStore = create<WalletStore>()(
       balance: null,
       isLoading: false,
       lastUpdated: null,
+    });
+  },
 
-      setConnected: (address: string, walletType: WalletType, chainId: ChainId = DEFAULT_CHAIN_ID) => {
-        set({
-          isConnected: true,
-          address,
-          walletType,
-          chainId,
-          isConnecting: false,
-          error: null,
-          lastUpdated: Date.now(),
-        });
-      },
+  setChainId: (chainId: ChainId) => {
+    set({ chainId, isSwitchingNetwork: false, error: null, lastUpdated: Date.now() });
+  },
 
-      setDisconnected: () => {
-        set({
-          isConnected: false,
-          address: null,
-          walletType: null,
-          chainId: DEFAULT_CHAIN_ID,
-          isConnecting: false,
-          isSwitchingNetwork: false,
-          error: null,
-          balance: null,
-          isLoading: false,
-          lastUpdated: null,
-        });
-      },
+  setConnecting: (isConnecting: boolean) => {
+    set({ isConnecting });
+  },
 
-      setChainId: (chainId: ChainId) => {
-        set({ chainId, isSwitchingNetwork: false, error: null, lastUpdated: Date.now() });
-      },
+  setSwitchingNetwork: (isSwitching: boolean) => {
+    set({ isSwitchingNetwork: isSwitching });
+  },
 
-      setConnecting: (isConnecting: boolean) => {
-        set({ isConnecting });
-      },
+  setError: (error: string | null) => {
+    set({ error, isConnecting: false, isSwitchingNetwork: false });
+  },
 
-      setSwitchingNetwork: (isSwitching: boolean) => {
-        set({ isSwitchingNetwork: isSwitching });
-      },
+  setBalance: (balance: string | null) => {
+    set({ balance, lastUpdated: Date.now() });
+  },
 
-      setError: (error: string | null) => {
-        set({ error, isConnecting: false, isSwitchingNetwork: false });
-      },
-
-      setBalance: (balance: string | null) => {
-        set({ balance, lastUpdated: Date.now() });
-      },
-
-      clearError: () => {
-        set({ error: null });
-      },
-      
-      setLoading: (loading: boolean) => set({ isLoading: loading }),
-      
-      setLastUpdated: (timestamp: number) => set({ lastUpdated: timestamp }),
-      
-      reset: () => set({
-        isConnected: false,
-        address: null,
-        walletType: null,
-        chainId: DEFAULT_CHAIN_ID,
-        isConnecting: false,
-        isSwitchingNetwork: false,
-        error: null,
-        balance: null,
-        isLoading: false,
-        lastUpdated: null,
-      }),
-    }),
-    {
-      name: 'propchain-wallet',
-      partialize: (state) => ({
-        isConnected: state.isConnected,
-        address: state.address,
-        walletType: state.walletType,
-        chainId: state.chainId,
-        isSwitchingNetwork: state.isSwitchingNetwork,
-        lastUpdated: state.lastUpdated,
-      }),
-    }
-  )
-);
+  clearError: () => {
+    set({ error: null });
+  },
+  
+  setLoading: (loading: boolean) => set({ isLoading: loading }),
+  
+  setLastUpdated: (timestamp: number) => set({ lastUpdated: timestamp }),
+  
+  reset: () => set({
+    isConnected: false,
+    address: null,
+    walletType: null,
+    chainId: DEFAULT_CHAIN_ID,
+    isConnecting: false,
+    isSwitchingNetwork: false,
+    error: null,
+    balance: null,
+    isLoading: false,
+    lastUpdated: null,
+  }),
+}));
